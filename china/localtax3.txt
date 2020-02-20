@@ -1,0 +1,52 @@
+mydir <- "c:/localtax/chinafix/"
+mysubdir <- "images"
+
+if (dir.exists(mydir)){
+  setwd(file.path(mydir))
+} else {
+  dir.create(file.path(mydir))
+  dir.create(file.path(mydir,mysubdir))
+  setwd(file.path(mydir))
+}
+
+chinafix <- read.xlsx("c:/localtax/localtax.xlsx",3,encoding="UTF-8")
+chinafix <- chinafix[][-1]
+chinafix <- chinafix[-1:-3,]
+
+chinafix <- ts(chinafix,start=1952,end=2017)
+
+win.graph()
+
+sink("chinafixoutput.txt")
+sink()
+# 출력을 파일에 저장
+sink("chinafixoutput.txt",append=T)
+# 31개 성에 대한 작업시작
+for (i in 1:31){
+  # 성 이름 출력하고
+  print(colnames(chinafix)[i])
+  # 자동으로 모형을 계산한다.
+  fit <- auto.arima(chinafix[,i],allowdrift = F)
+  # 저장된 내용은 화면에 출력하고
+  print(fit)
+  # 2018년부터 3년 예측한다.
+  pred <- predict(fit,n.ahead=3)
+  print(pred$pred)
+  cat(colnames(chinatot)[i]," 출력 끝================== \n\n")
+
+  # 2017년까지 시계열을 그리고
+  ts.plot(ts(c(chinafix[,i],pred$pred),star=1952),gpars=list(main=colnames(chinafix)[i]))
+  # 2018년부터 예측값과 구간을 그린다.
+  lines(pred$pred, col="red", type="o")
+  lines(pred$pred+pred$se,col="blue",lty="dashed")
+  lines(pred$pred-pred$se,col="blue",lty="dashed")  
+  savePlot(filename=paste("images/chinafix",colnames(chinafix)[i],".png"),type="png")
+}
+
+#출력 내용 저장 종료
+sink()
+# 전체 그림
+ts.plot(chinafix,gpars=list(xlab="years",ylab="성",lty=c(1:6),lwd=2,col=1:6))
+savePlot("images/chinafix.png",type="png")
+graphics.off()
+

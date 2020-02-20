@@ -1,0 +1,70 @@
+﻿mydir <- "c:/localtax/china1per/"
+mysubdir <- "images"
+
+if (dir.exists(mydir)){
+  setwd(file.path(mydir))
+} else {
+  dir.create(file.path(mydir))
+  dir.create(file.path(mydir,mysubdir))
+  setwd(file.path(mydir))
+}
+
+china1per <- read.xlsx("c:/localtax/localtax.xlsx",2,encoding="UTF-8")
+china1per <- china1per[][-1]
+china1per <- china1per[-1:-3,]
+
+ctotsmall <- china1per[-1:-26,"해남"]
+ctotsmall <- ts(ctotsmall,start=1978,end=2017)
+
+
+china1per <- china1per[,-21]
+china1per <- ts(china1per,start=1952,end=2017)
+#pred <- data.frame(1:3,1:2)
+
+# 그래프 그리고 저장에 사용
+win.graph()
+
+# 예전 출력 삭제
+sink("china1peroutput.txt")
+sink()
+# 출력을 파일에 저장
+sink("china1peroutput.txt",append=T)
+# 30개 성에 대한 작업시작
+for (i in 1:30){
+  # 성 이름 출력하고
+  print(colnames(china1per)[i])
+  # 자동으로 모형을 계산한다.
+  fit <- auto.arima(china1per[,i])
+  # 저장된 내용은 화면에 출력하고
+  print(fit)
+  # 2018년부터 3년 예측한다.
+  pred <- predict(fit,n.ahead=3,allowdrift = F)
+  print(pred$pred)
+  cat(colnames(chinatot)[i]," 출력 끝================== \n\n")
+  # 2017년까지 시계열을 그리고, 2018년부터 예측값과 구간을 그린다.
+  ts.plot(ts(c(china1per[,i],pred$pred),star=1952),gpars=list(main=colnames(china1per)[i]))
+  # 2018년부터 예측값과 구간을 그린다.
+  lines(pred$pred, col="red", type="o")
+  lines(pred$pred+pred$se,col="blue",lty="dashed")
+  lines(pred$pred-pred$se,col="blue",lty="dashed")  
+  savePlot(filename=paste("images/china1per",colnames(china1per)[i],".png"),type="png")
+}
+
+# 해남은 별도로 제작
+cat("해남\n")
+fit <- auto.arima(ctotsmall,allowdrift = F)
+print(fit)
+spred <- predict(fit,n.ahead=3)
+print(spred$pred)
+ts.plot(ts(c(ctotsmall,spred$pred),star=1978),gpars=list(main="해남"))
+lines(spred$pred, col="red", type="o")
+lines(spred$pred+pred$se,col="blue",lty="dashed")
+lines(spred$pred-pred$se,col="blue",lty="dashed")  
+savePlot(filename=paste("images/china1per해남.png"),type="png")
+#출력 내용 저장 종료
+sink()
+# 전체 그림
+ts.plot(china1per,gpars=list(xlab="years",ylab="성",lty=c(1:6),lwd=2,col=1:6))
+savePlot("images/china1per.png",type="png")
+graphics.off()
+

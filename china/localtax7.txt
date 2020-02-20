@@ -1,0 +1,73 @@
+mydir <- "c:/localtax/chinadiff/"
+mysubdir <- "images"
+
+if (dir.exists(mydir)){
+  setwd(file.path(mydir))
+} else {
+  dir.create(file.path(mydir))
+  dir.create(file.path(mydir,mysubdir))
+  setwd(file.path(mydir))
+}
+
+chinadiff <- read.xlsx("c:/localtax/localtax.xlsx",7,encoding="UTF-8")
+chinadiff <- chinadiff[][-1]
+
+ctotsmall1 <- chinadiff[-1:-46,"복건"]
+ctotsmall1 <- ts(ctotsmall1,start=1995,end=2017)
+
+chinadiff <- chinadiff[-1:-3,]
+
+chinadiff <- chinadiff[,-13]
+chinadiff <- ts(chinadiff,start=1952,end=2017)
+#pred <- data.frame(1:3,colnames(chinadiff))
+
+# 그래프 그리고 저장에 사용
+win.graph()
+
+# 예전 출력 삭제
+sink("chinadiffoutput.txt")
+sink()
+# 출력을 파일에 저장
+sink("chinadiffoutput.txt",append=T)
+# 30개 성에 대한 작업시작
+for (i in 1:30){
+  # 성 이름 출력하고
+  print(colnames(chinadiff)[i])
+  # 자동으로 모형을 계산한다.
+  fit <- auto.arima(chinadiff[,i],allowdrift = F)
+  # 저장된 내용은 화면에 출력하고
+  print(fit)
+  # 2018년부터 3년 예측한다.
+  pred <- predict(fit,n.ahead=3)
+  print(pred$pred)
+  cat(colnames(chinatot)[i]," 출력 끝================== \n\n")
+  # 2017년까지 시계열을 그리고
+  ts.plot(ts(c(chinadiff[,i],pred$pred),start=1952),gpars=list(main=colnames(chinadiff)[i]))
+  # 2018년부터 예측값과 구간을 그린다.
+  lines(pred$pred, col="red", type="o")
+  lines(pred$pred+pred$se,col="blue",lty="dashed")
+  lines(pred$pred-pred$se,col="blue",lty="dashed")  
+  savePlot(filename=paste("images/chinadiff",colnames(chinadiff)[i],".png"),type="png")
+}
+
+# 자료가 적은 것은 별도로 제자
+cat("복건\n")
+fit <- auto.arima(ctotsmall1,allowdrift = F)
+print(fit)
+pred <- predict(fit,n.ahead=3)
+print(pred$pred)
+cat("복건 출력 끝================== \n\n")
+ts.plot(ts(c(ctotsmall1,pred$pred),start=1995),gpars=list(main="복건"))
+lines(pred$pred, col="red", type="o")
+lines(pred$pred+pred$se,col="blue",lty="dashed")
+lines(pred$pred-pred$se,col="blue",lty="dashed")  
+savePlot(filename=paste("images/chinadiff복건.png"),type="png")
+
+
+#출력 내용 저장 종료
+sink()
+# 전체 그림
+ts.plot(chinadiff,gpars=list(xlab="years",ylab="성",lty=c(1:6),lwd=2,col=1:6))
+savePlot("images/chinadiff.png",type="png")
+graphics.off()
+

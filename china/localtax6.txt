@@ -1,0 +1,89 @@
+mydir <- "c:/localtax/chinaspend/"
+mysubdir <- "images"
+
+if (dir.exists(mydir)){
+  setwd(file.path(mydir))
+} else {
+  dir.create(file.path(mydir))
+  dir.create(file.path(mydir,mysubdir))
+  setwd(file.path(mydir))
+}
+
+chinaspend <- read.xlsx("c:/localtax/localtax.xlsx",6,encoding="UTF-8")
+
+ctotsmall1 <- chinaspend[-1:-29,"광동"]
+ctotsmall1 <- ts(ctotsmall1,start=1978,end=2017)
+ctotsmall2 <- chinaspend[-1:-35,"사천"]
+ctotsmall2 <- ts(ctotsmall2,start=1984,end=2017)
+
+chinaspend <- chinaspend[][-1]
+chinaspend <- chinaspend[-1:-3,]
+
+chinaspend <- chinaspend[,-23]
+chinaspend <- chinaspend[,-19]
+chinaspend <- ts(chinaspend,start=1952,end=2017)
+#pred <- data.frame(1:3,colnames(chinaspend))
+
+# 그래프 그리고 저장에 사용
+win.graph()
+
+# 예전 출력 삭제
+sink("chinaspendoutput.txt")
+sink()
+# 출력을 파일에 저장
+sink("chinaspendoutput.txt",append=T)
+# 29개 성에 대한 작업시작
+for (i in 1:29){
+  # 성 이름 출력하고
+  print(colnames(chinaspend)[i])
+  # 자동으로 모형을 계산한다.
+  fit <- auto.arima(chinaspend[,i],allowdrift = F)
+  # 저장된 내용은 화면에 출력하고
+  print(fit)
+  # 2018년부터 3년 예측한다.
+  pred <- predict(fit,n.ahead=3)
+  print(pred$pred)
+  cat(colnames(chinatot)[i]," 출력 끝================== \n\n")
+
+  # 2017년까지 시계열을 그리고
+  ts.plot(ts(c(chinaspend[,i],pred$pred),start=1952),gpars=list(main=colnames(chinaspend)[i]))
+  # 2018년부터 예측값과 구간을 그린다.
+  lines(pred$pred, col="red", type="o")
+  lines(pred$pred+pred$se,col="blue",lty="dashed")
+  lines(pred$pred-pred$se,col="blue",lty="dashed")  
+  savePlot(filename=paste("images/chinaspend",colnames(chinaspend)[i],".png"),type="png")
+}
+
+# 자료가 적은 것은 별도로 제자
+
+cat("광동\n")
+fit <- auto.arima(ctotsmall1)
+print(fit)
+pred <- predict(fit,n.ahead=3,allowdrift = F)
+print(pred$pred)
+cat("광동 출력 끝================== \n\n")
+ts.plot(ts(c(ctotsmall1,pred$pred),start=1978),gpars=list(main="광동"))
+lines(pred$pred, col="red", type="o")
+lines(pred$pred+pred$se,col="blue",lty="dashed")
+lines(pred$pred-pred$se,col="blue",lty="dashed")  
+savePlot(filename=paste("images/chinaspend광동.png"),type="png")
+
+cat("사천\n")
+fit <- auto.arima(ctotsmall2,allowdrift = F)
+print(fit)
+pred <- predict(fit,n.ahead=3)
+print(pred$pred)
+cat("사천 출력 끝================== \n\n")
+ts.plot(ts(c(ctotsmall2,pred$pred),start=1984),gpars=list(main="사천"))
+lines(pred$pred, col="red", type="o")
+lines(pred$pred+pred$se,col="blue",lty="dashed")
+lines(pred$pred-pred$se,col="blue",lty="dashed")  
+savePlot(filename=paste("images/chinaspend사천.png"),type="png")
+
+#출력 내용 저장 종료
+sink()
+# 전체 그림
+ts.plot(chinaspend,gpars=list(xlab="years",ylab="성",lty=c(1:6),lwd=2,col=1:6))
+savePlot("images/chinaspend.png",type="png")
+graphics.off()
+
